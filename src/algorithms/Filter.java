@@ -19,7 +19,7 @@ public class Filter {
 						sum += filter[k - (i - half)][l - (j - half)] * mat.get(k, l)[0];
 					}
 				}
-				result.put(i, j, new double[]{sum});
+				result.put(i, j, new double[]{Math.abs(sum)});
 			}
 		}
 		return result;
