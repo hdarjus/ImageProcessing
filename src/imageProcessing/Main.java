@@ -7,6 +7,7 @@ import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import algorithms.BoxFilter;
+import algorithms.Prewitt;
 import ml.options.OptionSet;
 import ml.options.Options;
 import ml.options.Options.Multiplicity;
@@ -82,21 +83,22 @@ public class Main {
 		System.out.println("  /out2 is the second output path");
 	}
 
-	public static void processImageWithBoxFilter(Mat mat, int filtersize, String out1, String out2)
+	public static void processImageWithBoxFilter(Mat mat, String out1, String out2, int filtersize)
 			throws IOException {
 		if (filtersize > mat.width() || filtersize > mat.height())
 			throw new RuntimeException("Filter size bigger than picture dimensions");
 		Stopwatch timer = new Stopwatch();
+		BoxFilter boxFilter = new BoxFilter(filtersize);
 		
 		// Box filter
 		timer.start();
-		Mat boxFiltered = BoxFilter.boxFilter(mat, filtersize);
+		Mat boxFiltered = boxFilter.boxFilter(mat, filtersize);
 		timer.stop();
 		long boxFilterTime = timer.getElapsedMilliseconds();
 		
 		// Running box filter
 		timer.start();
-		Mat runningBoxFiltered = BoxFilter.runningBoxFilter(mat, filtersize);
+		Mat runningBoxFiltered = boxFilter.runningBoxFilter(mat, filtersize);
 		timer.stop();
 		long runningBoxFilterTime = timer.getElapsedMilliseconds();
 		
@@ -114,6 +116,29 @@ public class Main {
 		}
 		if (out2 != null) {
 			WriteImage.writeImage(runningBoxFiltered, out2);
+		}
+	}
+	
+	public static void processImageWithPrewitt (Mat mat, String out1, String out2)
+			throws IOException {
+		Prewitt prewitt = new Prewitt();
+		
+		// Result
+		Mat result = prewitt.detect(mat);
+		
+		// Magnitude
+		Mat magnitude = prewitt.getMagnitude();
+		
+		// Show images
+		ShowImage.showImage(magnitude, "Magnitude");
+		ShowImage.showImage(result, "Result after NMS");
+		
+		// Save images
+		if (out1 != null) {
+			WriteImage.writeImage(magnitude, out1);
+		}
+		if (out2 != null) {
+			WriteImage.writeImage(result, out2);
 		}
 	}
 	
@@ -142,9 +167,10 @@ public class Main {
 			
 			switch (task) {
 			case BOX_FILTER:
-				Main.processImageWithBoxFilter(mat, filtersize, out1, out2);
+				Main.processImageWithBoxFilter(mat, out1, out2, filtersize);
 				break;
 			case EDGE_DETECTION:
+				Main.processImageWithPrewitt(mat, out1, out2);
 				break;
 			}
 		} catch (Exception e) {

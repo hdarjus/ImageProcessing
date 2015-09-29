@@ -3,31 +3,26 @@ package algorithms;
 import org.opencv.core.Mat;
 
 public class BoxFilter {
-
-	public static Mat boxFilter (Mat mat, int filtersize) {
-		Mat result = mat.clone();
-		int half = filtersize / 2;
-		int filtersizeSquare = filtersize * filtersize;
-		// For all the pixels that the filter can be put on
-		for (int i = half; i < mat.height() - half; i++) {
-			for (int j = half; j < mat.width() - half; j++) {
-				double sum = 0;
-				// For all the fields that the filter covers
-				for (int k = i - half; k <= i + half; k++) {
-					for (int l = j - half; l <= j + half; l++) {
-						sum += mat.get(k, l)[0];
-					}
-				}
-				sum /= filtersizeSquare;
-				result.put(i, j, new double[]{sum});
+	
+	private double[][] box;
+	
+	public BoxFilter (int filtersize) {
+		box = new double[filtersize][filtersize];
+		for (int i = 0; i < filtersize; i++) {
+			for (int j = 0; j < filtersize; j++) {
+				box[i][j] = 1/9D;
 			}
 		}
+	}
+
+	public Mat boxFilter (Mat mat, int filtersize) {
+		Mat result = Filter.apply(mat, box);
 		// Fill frame with average
-		fillFrameAvg(result, mat, half);
+		Filter.fillFrameAvg(result, mat, box);
 		return result;
 	}
 	
-	public static Mat runningBoxFilter (Mat mat, int filtersize) {
+	public Mat runningBoxFilter (Mat mat, int filtersize) {
 		Mat result = mat.clone();
 		int half = filtersize / 2;
 		
@@ -72,32 +67,12 @@ public class BoxFilter {
 		}
 		
 		// Fill frame with average
-		fillFrameAvg(result, mat, half);
+		Filter.fillFrameAvg(result, mat, box);
 		
 		if (transposed) {
 			result = result.t();
 		}
 		return result;
-	}
-	
-	public static void fillFrameAvg (Mat result, Mat mat, int framesize) {
-		double avg = 0;
-		// Calculate average
-		for (int i = 0; i < mat.height(); i++) {
-			for (int j = 0; j < mat.width(); j++) {
-				avg += mat.get(i, j)[0];
-			}
-		}
-		avg /= mat.height() * mat.width();
-		// Fill frame
-		for (int i = 0; i < result.height(); i++) {
-			for (int j = 0; j < result.width(); j++) {
-				if (i < framesize || i >= result.height()-1
-						|| j < framesize || j >= result.width()-1) {
-					result.put(i, j, new double[]{avg});
-				}
-			}
-		}
 	}
 
 }
