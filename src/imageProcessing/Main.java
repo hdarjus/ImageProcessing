@@ -33,8 +33,15 @@ public class Main {
 	private static void setAndValidateOptions (String[] args) throws Exception {
 		// Define command line options
 		opt = new Options (args, 0);
-		opt.addSet("boxset").addOption("box").addOption("filtersize", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
-			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE).addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
+		opt.addSet("boxset")
+			.addOption("box")
+			.addOption("filtersize", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
+			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
+			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
+		opt.addSet("prewittset")
+			.addOption("prewitt")
+			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
+			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
 		opt.addOptionAllSets("i", Separator.BLANK, Multiplicity.ONCE);
 		// opt.addSet("hset").addOption("h");
 		set = opt.getMatchingSet(true, false);
@@ -60,6 +67,14 @@ public class Main {
 				out2 = set.getOption("out2").getResultValue(0);
 			}
 			task = Task.BOX_FILTER;
+		} else if (set.getSetName().equals("prewittset")) {
+			if (set.isSet("out1")) {
+				out1 = set.getOption("out1").getResultValue(0);
+			}
+			if (set.isSet("out2")) {
+				out2 = set.getOption("out2").getResultValue(0);
+			}
+			task = Task.EDGE_DETECTION;
 		} else {
 			throw new RuntimeException();
 		}
@@ -74,6 +89,7 @@ public class Main {
 		System.out.println();
 		System.out.println("Values for <algorithm flag>:");
 		System.out.println("  /box for box filtering");
+		System.out.println("  /prewitt for Prewitt gradient edge detection with non-maxima suppression");
 		System.out.println();
 		System.out.println("Values for <algorithm parameters>:");
 		System.out.println("  /filtersize is the size of the filter");

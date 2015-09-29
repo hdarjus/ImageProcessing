@@ -69,7 +69,7 @@ public class Prewitt {
 			for (int j = 0; j < result.width(); j++) {
 				double fxij = fx.get(i, j)[0];
 				double fyij = fy.get(i, j)[0];
-				result.put(i, j, new double[]{Math.atan(fyij/fxij)});
+				result.put(i, j, new double[]{Math.atan(fxij/fyij)});
 			}
 		}
 		return result;
