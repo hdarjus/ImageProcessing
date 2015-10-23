@@ -163,10 +163,10 @@ public class ImageProcessing {
 		
 		try {
 			// Hack java to load .dlls automatically
-			System.setProperty( "java.library.path", "lib" );
-			Field fieldSysPath = ClassLoader.class.getDeclaredField( "sys_paths" );
-			fieldSysPath.setAccessible( true );
-			fieldSysPath.set( null, null );
+//			System.setProperty( "java.library.path", "lib" );
+//			Field fieldSysPath = ClassLoader.class.getDeclaredField( "sys_paths" );
+//			fieldSysPath.setAccessible( true );
+//			fieldSysPath.set( null, null );
 
 			
 			// Load the native library

@@ -91,16 +91,15 @@ public class Prewitt {
 		Mat result = mag.clone();
 		for (int i = 1; i < mag.height() - 1; i++) {
 			for (int j = 1; j < mag.width() - 1; j++) {
-				// Absolute value of the orientation in degree
 				double oriDeg = (360 * ori.get(i, j)[0]) / Math.PI;
 				if (Math.abs(oriDeg) > 67.5) {
-					nmsHelper(mag, result, i-1, j, i+1, j);
-				} else if (oriDeg >= -67.5 && oriDeg <= -22.5) {
-					nmsHelper(mag, result, i+1, j+1, i-1, j-1);
-				} else if (Math.abs(oriDeg) < 22.5) {
 					nmsHelper(mag, result, i, j+1, i, j-1);
-				} else {
+				} else if (oriDeg >= -67.5 && oriDeg <= -22.5) {
 					nmsHelper(mag, result, i-1, j+1, i+1, j-1);
+				} else if (Math.abs(oriDeg) < 22.5) {
+					nmsHelper(mag, result, i-1, j, i+1, j);
+				} else {
+					nmsHelper(mag, result, i+1, j+1, i-1, j-1);
 				}
 			}
 		}

@@ -38,8 +38,8 @@ public class Filter {
 		// Fill frame
 		for (int i = 0; i < result.height(); i++) {
 			for (int j = 0; j < result.width(); j++) {
-				if (i < framesize || i >= result.height()-1
-						|| j < framesize || j >= result.width()-1) {
+				if (i < framesize || i >= result.height()-framesize
+						|| j < framesize || j >= result.width()-framesize) {
 					result.put(i, j, new double[]{avg});
 				}
 			}

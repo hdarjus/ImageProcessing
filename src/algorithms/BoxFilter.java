@@ -8,9 +8,10 @@ public class BoxFilter {
 	
 	public BoxFilter (int filtersize) {
 		box = new double[filtersize][filtersize];
+		double value = 1/(filtersize * (double) filtersize);
 		for (int i = 0; i < filtersize; i++) {
 			for (int j = 0; j < filtersize; j++) {
-				box[i][j] = 1/9D;
+				box[i][j] = value;
 			}
 		}
 	}
