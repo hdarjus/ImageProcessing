@@ -1,8 +1,6 @@
 package imageProcessing;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -16,7 +14,7 @@ import ml.options.Options.Separator;
 
 public class ImageProcessing {
 	
-	private static enum Task {BOX_FILTER, EDGE_DETECTION}
+	private static enum Task {BOX_FILTER, EDGE_DETECTION, CORNER_DETECTION}
 	
 	private static Task task;
 	
@@ -28,8 +26,8 @@ public class ImageProcessing {
 	private static String out2;
 	
 	private static int filtersize;
-	// private static double hthr;
-	// private static double alpha;
+	private static double hthr;
+	private static double alpha;
 	
 	private static void setAndValidateOptions (String[] args) throws Exception {
 		// Define command line options
@@ -41,6 +39,13 @@ public class ImageProcessing {
 			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
 		opt.addSet("prewittset")
 			.addOption("prewitt")
+			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
+			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
+		opt.addSet("harrisset")
+			.addOption("harris")
+			.addOption("alpha", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
+			.addOption("hthr", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
+			.addOption("filtersize", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
 			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
 			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
 		opt.addOptionAllSets("i", Separator.BLANK, Multiplicity.ONCE);
@@ -76,6 +81,35 @@ public class ImageProcessing {
 				out2 = set.getOption("out2").getResultValue(0);
 			}
 			task = Task.EDGE_DETECTION;
+		} else if (set.getSetName().equals("harrisset")) {
+			alpha = 0.04;
+			hthr = 0.5;
+			filtersize = 5;
+			if (set.isSet("alpha")) {
+				alpha = Integer.parseInt(set.getOption("alpha").getResultValue(0));
+				if (alpha < 0 || alpha > 0.25) {
+					throw new RuntimeException("Alpha should be between 0 and 0.25");
+				}
+			}
+			if (set.isSet("hthr")) {
+				hthr = Integer.parseInt(set.getOption("hthr").getResultValue(0));
+				if (hthr < 0 || hthr > 1) {
+					throw new RuntimeException("H threshold should be between 0 and 1");
+				}
+			}
+			if (set.isSet("filtersize")) {
+				filtersize = Integer.parseInt(set.getOption("filtersize").getResultValue(0));
+				if (filtersize%2 == 0 || filtersize < 1) {
+					throw new RuntimeException("Filter size should be a positive odd number");
+				}
+			}
+			if (set.isSet("out1")) {
+				out1 = set.getOption("out1").getResultValue(0);
+			}
+			if (set.isSet("out2")) {
+				out2 = set.getOption("out2").getResultValue(0);
+			}
+			task = Task.CORNER_DETECTION;
 		} else {
 			throw new RuntimeException();
 		}
@@ -109,7 +143,7 @@ public class ImageProcessing {
 		
 		// Box filter
 		timer.start();
-		Mat boxFiltered = boxFilter.boxFilter(mat, filtersize);
+		Mat boxFiltered = boxFilter.boxFilter(mat);
 		timer.stop();
 		long boxFilterTime = timer.getElapsedMilliseconds();
 		
@@ -158,6 +192,13 @@ public class ImageProcessing {
 			WriteImage.writeImage(result, out2);
 		}
 	}
+
+	private static void processImageWithHarris(Mat mat, String out1, String out2, double alpha, double hthr,
+			int filtersize) 
+					throws IOException {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	public static void main(String[] args) {
 		
@@ -197,6 +238,9 @@ public class ImageProcessing {
 				break;
 			case EDGE_DETECTION:
 				ImageProcessing.processImageWithPrewitt(mat, out1, out2);
+				break;
+			case CORNER_DETECTION:
+				ImageProcessing.processImageWithHarris(mat, out1, out2, alpha, hthr, filtersize);
 				break;
 			}
 		} catch (Exception e) {

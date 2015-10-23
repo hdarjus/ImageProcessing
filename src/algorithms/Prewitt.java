@@ -5,35 +5,10 @@ import org.opencv.core.Mat;
 public class Prewitt {
 
 	// x and y axes of a picture are j and i respectively in Mat
-	private double[][] prewittX;
-	private double[][] prewittY;
 	private Mat magn;
 	private Mat orie;
 	
-	public Prewitt () {
-		prewittX = new double[3][3];
-		prewittY = new double[3][3];
-		
-		prewittX[0][0] = -1/3D;
-		prewittX[0][1] = 0;
-		prewittX[0][2] = 1/3D;
-		prewittX[1][0] = -1/3D;
-		prewittX[1][1] = 0;
-		prewittX[1][2] = 1/3D;
-		prewittX[2][0] = -1/3D;
-		prewittX[2][1] = 0;
-		prewittX[2][2] = 1/3D;
-		
-		prewittY[0][0] = -1/3D;
-		prewittY[1][0] = 0;
-		prewittY[2][0] = 1/3D;
-		prewittY[0][1] = -1/3D;
-		prewittY[1][1] = 0;
-		prewittY[2][1] = 1/3D;
-		prewittY[0][2] = -1/3D;
-		prewittY[1][2] = 0;
-		prewittY[2][2] = 1/3D;
-	}
+	public Prewitt () {}
 	
 	public Mat getMagnitude () {
 		return magn;
@@ -41,14 +16,6 @@ public class Prewitt {
 	
 	public Mat getOrientation () {
 		return orie;
-	}
-
-	private Mat diffX (Mat mat) {
-		return Filter.apply(mat, prewittX);
-	}
-	
-	private Mat diffY (Mat mat) {
-		return Filter.apply(mat, prewittY);
 	}
 	
 	private static Mat magnitude (Mat fx, Mat fy) {
@@ -107,8 +74,9 @@ public class Prewitt {
 	}
 	
 	public Mat detect (Mat mat) {
-		Mat fx = diffX(mat);
-		Mat fy = diffY(mat);
+		ImageDiff d = new ImageDiff();
+		Mat fx = d.diffX(mat);
+		Mat fy = d.diffY(mat);
 		magn = magnitude(fx, fy);
 		orie = orientation(fx, fy);
 		return nonMaximaSuppression (magn, orie);

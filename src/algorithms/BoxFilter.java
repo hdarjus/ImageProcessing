@@ -16,7 +16,7 @@ public class BoxFilter {
 		}
 	}
 
-	public Mat boxFilter (Mat mat, int filtersize) {
+	public Mat boxFilter (Mat mat) {
 		Mat result = Filter.apply(mat, box);
 		// Fill frame with average
 		Filter.fillFrameAvg(result, mat, box);
