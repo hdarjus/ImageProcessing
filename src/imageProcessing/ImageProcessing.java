@@ -2,13 +2,16 @@ package imageProcessing;
 
 import java.io.IOException;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import algorithms.BoxFilter;
 import algorithms.Harris;
 import algorithms.Otsu;
 import algorithms.Prewitt;
+import algorithms.Shrinker;
 import ml.options.OptionSet;
 import ml.options.Options;
 import ml.options.Options.Multiplicity;
@@ -16,7 +19,7 @@ import ml.options.Options.Separator;
 
 public class ImageProcessing {
 	
-	private static enum Task {BOX_FILTER, EDGE_DETECTION, CORNER_DETECTION, THRESHOLDING}
+	private static enum Task {BOX_FILTER, EDGE_DETECTION, CORNER_DETECTION, THRESHOLDING, SHRINKING}
 	
 	private static Task task;
 	
@@ -30,6 +33,7 @@ public class ImageProcessing {
 	private static int filtersize;
 	private static double hthr;
 	private static double alpha;
+	private static boolean background;
 	
 	private static void setAndValidateOptions (String[] args) throws Exception {
 		// Define command line options
@@ -52,6 +56,10 @@ public class ImageProcessing {
 			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
 		opt.addSet("otsuset")
 			.addOption("otsu")
+			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
+		opt.addSet("shrinkset")
+			.addOption("shrink")
+			.addOption("background", Multiplicity.ZERO_OR_ONE)
 			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
 		opt.addOptionAllSets("i", Separator.BLANK, Multiplicity.ONCE);
 		// opt.addSet("hset").addOption("h");
@@ -123,6 +131,15 @@ public class ImageProcessing {
 				out1 = set.getOption("out1").getResultValue(0);
 			}
 			task = Task.THRESHOLDING;
+		} else if (set.getSetName().equals("shrinkset")) {
+			background = false;
+			if (set.isSet("background")) {
+				background = true;
+			}
+			if (set.isSet("out1")) {
+				out1 = set.getOption("out1").getResultValue(0);
+			}
+			task = Task.SHRINKING;
 		} else {
 			throw new RuntimeException();
 		}
@@ -140,11 +157,13 @@ public class ImageProcessing {
 		System.out.println("  -prewitt for Prewitt gradient edge detection with non-maxima suppression");
 		System.out.println("  -harris for Harris conrner detection with non-maxima suppression");
 		System.out.println("  -otsu for Otsu intensity thresholding");
+		System.out.println("  -shrink for shrinking binary pictures");
 		System.out.println();
 		System.out.println("Values for <algorithm parameters>:");
 		System.out.println("  -filtersize is the size of the filter");
 		System.out.println("  -hthr is the value of hthr");
 		System.out.println("  -alpha is the value of alpha");
+		System.out.println("  -background for shrinking the background");
 		System.out.println("  -out1 is the first output path");
 		System.out.println("  -out2 is the second output path");
 	}
@@ -236,7 +255,7 @@ public class ImageProcessing {
 	}
 
 	private static void processImageWithOtsu(Mat mat, String out1)
-		throws IOException {
+			throws IOException {
 		System.out.println("Running Otsu's method to classify intensity levels...");
 		Otsu otsu = new Otsu();
 		
@@ -249,6 +268,45 @@ public class ImageProcessing {
 		// Show images, print output
 		System.out.println("The threshold is " + threshold);
 		ShowImage.showImage(result, "Intensity levels");
+		
+		// Save images
+		if (out1 != null) {
+			WriteImage.writeImage(result, out1);
+		}
+	}
+
+	private static void processImageWithShrinking(Mat mat, boolean background, String out1)
+			throws IOException {
+		System.out.println("Running shrinking on " + (background ? "background" : "object") + "...");
+		Shrinker shrinker = new Shrinker();
+		
+		// Shrinker gets binary picture (all elements are 0 or 1)
+		Mat result = mat.clone();
+		result.convertTo(result, CvType.CV_32SC1);
+		Core.compare(result, new Scalar(128), result, Core.CMP_GT);
+		Core.divide(result, new Scalar(255), result);
+		
+		// Swap object and background
+		if (background) {
+			Core.multiply(result, new Scalar(-1), result);
+			Core.add(result, new Scalar(1), result);
+		}
+		
+		// Result
+		result = shrinker.shrink(result);
+		
+		// Swap object and background
+		if (background) {
+			Core.multiply(result, new Scalar(-1), result);
+			Core.add(result, new Scalar(1), result);
+		}
+		
+		// Rescale for showImage
+		Core.multiply(result, new Scalar(255), result);
+		result.convertTo(result, CvType.CV_8UC1);
+		
+		// Show images
+		ShowImage.showImage(result, "Shrinked image");
 		
 		// Save images
 		if (out1 != null) {
@@ -300,6 +358,11 @@ public class ImageProcessing {
 				break;
 			case THRESHOLDING:
 				ImageProcessing.processImageWithOtsu(mat, out1);
+				break;
+			case SHRINKING:
+				ImageProcessing.processImageWithShrinking(mat, background, out1);
+				break;
+			default:
 				break;
 			}
 		} catch (Exception e) {
