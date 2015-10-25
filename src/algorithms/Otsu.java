@@ -68,8 +68,6 @@ public class Otsu {
 		Mat temp = new Mat();
 		Core.subtract(q1, new Scalar(1), temp);
 		Core.multiply(temp, new Scalar(-1), temp);
-		System.out.println("Q1: " + q1.dump());
-		System.out.println("1-Q1: " + temp.dump());
 		sigma2 = q1.clone();
 		Core.multiply(sigma2, temp, sigma2);
 		Core.subtract(m1, m2, temp);
@@ -77,7 +75,6 @@ public class Otsu {
 		Core.multiply(sigma2, temp, sigma2);
 		
 		MinMaxLocResult mmlr = Core.minMaxLoc(sigma2);
-		System.out.println("MMLR: " + mmlr.maxLoc.y);
 		
 		threshold = (short) (firstNonZero + mmlr.maxLoc.y);
 		Mat result = new Mat();
