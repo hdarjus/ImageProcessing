@@ -2,6 +2,8 @@ package algorithms;
 
 import org.opencv.core.Mat;
 
+import algorithms.ImageDiff.DiffMatrix;
+
 public class Prewitt {
 
 	// x and y axes of a picture are j and i respectively in Mat
@@ -74,7 +76,7 @@ public class Prewitt {
 	}
 	
 	public Mat detect (Mat mat) {
-		ImageDiff d = new ImageDiff();
+		ImageDiff d = new ImageDiff(DiffMatrix.PREWITT);
 		Mat fx = d.diffX(mat);
 		Mat fy = d.diffY(mat);
 		magn = magnitude(fx, fy);

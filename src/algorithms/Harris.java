@@ -2,13 +2,19 @@ package algorithms;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
+
+import algorithms.ImageDiff.DiffMatrix;
+
 import org.opencv.core.Core;
+import org.opencv.core.Core.MinMaxLocResult;
+import org.opencv.core.CvType;
 
 public class Harris {
 	
 	private double alpha;
 	private double hthr;
 	private int filtersize;
+	private Mat corners;
 	
 	public Harris (double a, double thr, int f) {
 		alpha = a;
@@ -16,25 +22,59 @@ public class Harris {
 		filtersize = f;
 	}
 	
-	public Mat detectEdges (Mat mat) {
-		ImageDiff d = new ImageDiff();
+	public Mat getCorners() {
+		return corners;
+	}
+	
+	public Mat detect (Mat mat) {
+		ImageDiff d = new ImageDiff(DiffMatrix.SOBEL);
 		Mat fx = d.diffX(mat);
 		Mat fy = d.diffY(mat);
+		fx.convertTo(fx, CvType.CV_32FC1);
+		fy.convertTo(fy, CvType.CV_32FC1);
 		BoxFilter box = new BoxFilter(filtersize);
-		Mat fx2 = fx.mul(fx);
-		Mat fy2 = fy.mul(fy);
-		Mat fxfy = fx.mul(fy);
+		Mat fx2 = fx.clone();
+		Mat fy2 = fx.clone();
+		Mat fxfy = fx.clone();
+		Core.multiply(fx, fx, fx2);
+		Core.multiply(fy, fy, fy2);
+		Core.multiply(fx, fy, fxfy);
 		Mat avgfx2 = box.boxFilter(fx2);
 		Mat avgfy2 = box.boxFilter(fy2);
 		Mat avgfxfy = box.boxFilter(fxfy);
-		Mat c = avgfx2.mul(avgfy2);
-		Core.subtract(c, avgfxfy.mul(avgfxfy), c);
-		Mat temp = avgfx2.clone();
+		Mat c = fx.clone();
+		Mat temp = fx.clone();
+		Mat result = fx.clone();
+		Core.multiply(avgfx2, avgfy2, c);
+		Core.multiply(avgfxfy, avgfxfy, temp);
+		Core.subtract(c, temp, c);
 		Core.add(avgfx2, avgfy2, temp);
-		temp = temp.mul(temp);
-		Core.scaleAdd(temp, (-1)*alpha, c, c);
+		Core.multiply(temp, temp, temp);
+		Core.multiply(temp, new Scalar(alpha), temp);
+		Core.subtract(c, temp, c);
+		// Without non-maxima suppression
+		Core.compare(c, new Scalar(hthr), result, Core.CMP_GE);
+		corners = result.clone();
+		corners.convertTo(corners, CvType.CV_8UC1);
+		// With non-maxima suppression
+		c = nms(c, filtersize);
+		Core.compare(c, new Scalar(hthr), result, Core.CMP_GE);
+		result.convertTo(result, CvType.CV_8UC1);
+		return result;
+	}
+	
+	private Mat nms(Mat mat, int fs) {
+		int half = fs/2;
 		Mat result = mat.clone();
-		Core.compare(c, new Scalar(hthr), result, Core.CMP_GT);
+		for (int i = half; i < mat.height() - half; i++) {
+			for (int j = half; j < mat.width() - half; j++) {
+				double val = mat.get(i, j)[0];
+				Mat sub = mat.submat(i-half, i+half, j-half, j+half);
+				MinMaxLocResult max = Core.minMaxLoc(sub);
+				if (val < max.maxVal)
+					result.put(i, j, new double[]{0});
+			}
+		}
 		return result;
 	}
 

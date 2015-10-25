@@ -6,6 +6,7 @@ import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import algorithms.BoxFilter;
+import algorithms.Harris;
 import algorithms.Prewitt;
 import ml.options.OptionSet;
 import ml.options.Options;
@@ -51,11 +52,14 @@ public class ImageProcessing {
 		opt.addOptionAllSets("i", Separator.BLANK, Multiplicity.ONCE);
 		// opt.addSet("hset").addOption("h");
 		set = opt.getMatchingSet(true, false);
+		
+		if (set == null)
+			throw new RuntimeException("Couldn't match command line flags.");
 
 		if (set.isSet("i")) {
 			inputpath  = set.getOption("i").getResultValue(0);
 		} else {
-			throw new RuntimeException();
+			throw new RuntimeException("No input file.");
 		}
 		
 		if (set.getSetName().equals("boxset")) {
@@ -86,13 +90,13 @@ public class ImageProcessing {
 			hthr = 0.5;
 			filtersize = 5;
 			if (set.isSet("alpha")) {
-				alpha = Integer.parseInt(set.getOption("alpha").getResultValue(0));
+				alpha = Double.parseDouble(set.getOption("alpha").getResultValue(0));
 				if (alpha < 0 || alpha > 0.25) {
 					throw new RuntimeException("Alpha should be between 0 and 0.25");
 				}
 			}
 			if (set.isSet("hthr")) {
-				hthr = Integer.parseInt(set.getOption("hthr").getResultValue(0));
+				hthr = Double.parseDouble(set.getOption("hthr").getResultValue(0));
 				if (hthr < 0 || hthr > 1) {
 					throw new RuntimeException("H threshold should be between 0 and 1");
 				}
@@ -125,6 +129,7 @@ public class ImageProcessing {
 		System.out.println("Values for <algorithm flag>:");
 		System.out.println("  -box for box filtering");
 		System.out.println("  -prewitt for Prewitt gradient edge detection with non-maxima suppression");
+		System.out.println("  -harris for Harris conrner detection with non-maxima suppression");
 		System.out.println();
 		System.out.println("Values for <algorithm parameters>:");
 		System.out.println("  -filtersize is the size of the filter");
@@ -196,8 +201,26 @@ public class ImageProcessing {
 	private static void processImageWithHarris(Mat mat, String out1, String out2, double alpha, double hthr,
 			int filtersize) 
 					throws IOException {
-		// TODO Auto-generated method stub
+		System.out.println("Running Harris method to detect corners with alpha=" + alpha +", Hthr=" + hthr + ", filtersize=" + filtersize);
+		Harris harris = new Harris(alpha, hthr, filtersize);
 		
+		// Result
+		Mat result = harris.detect(mat);
+		
+		// Magnitude
+		Mat corners = harris.getCorners();
+		
+		// Show images
+		ShowImage.showImage(corners, "Corners");
+		ShowImage.showImage(result, "Result after NMS");
+		
+		// Save images
+		if (out1 != null) {
+			WriteImage.writeImage(corners, out1);
+		}
+		if (out2 != null) {
+			WriteImage.writeImage(result, out2);
+		}
 	}
 	
 	public static void main(String[] args) {
