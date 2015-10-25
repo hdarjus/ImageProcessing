@@ -7,6 +7,7 @@ import org.opencv.imgcodecs.Imgcodecs;
 
 import algorithms.BoxFilter;
 import algorithms.Harris;
+import algorithms.Otsu;
 import algorithms.Prewitt;
 import ml.options.OptionSet;
 import ml.options.Options;
@@ -15,7 +16,7 @@ import ml.options.Options.Separator;
 
 public class ImageProcessing {
 	
-	private static enum Task {BOX_FILTER, EDGE_DETECTION, CORNER_DETECTION}
+	private static enum Task {BOX_FILTER, EDGE_DETECTION, CORNER_DETECTION, THRESHOLDING}
 	
 	private static Task task;
 	
@@ -49,6 +50,9 @@ public class ImageProcessing {
 			.addOption("filtersize", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
 			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE)
 			.addOption("out2", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
+		opt.addSet("otsuset")
+			.addOption("otsu")
+			.addOption("out1", Separator.BLANK, Multiplicity.ZERO_OR_ONE);
 		opt.addOptionAllSets("i", Separator.BLANK, Multiplicity.ONCE);
 		// opt.addSet("hset").addOption("h");
 		set = opt.getMatchingSet(true, false);
@@ -114,6 +118,11 @@ public class ImageProcessing {
 				out2 = set.getOption("out2").getResultValue(0);
 			}
 			task = Task.CORNER_DETECTION;
+		} else if (set.getSetName().equals("otsuset")) {
+			if (set.isSet("out1")) {
+				out1 = set.getOption("out1").getResultValue(0);
+			}
+			task = Task.THRESHOLDING;
 		} else {
 			throw new RuntimeException();
 		}
@@ -130,6 +139,7 @@ public class ImageProcessing {
 		System.out.println("  -box for box filtering");
 		System.out.println("  -prewitt for Prewitt gradient edge detection with non-maxima suppression");
 		System.out.println("  -harris for Harris conrner detection with non-maxima suppression");
+		System.out.println("  -otsu for Otsu intensity thresholding");
 		System.out.println();
 		System.out.println("Values for <algorithm parameters>:");
 		System.out.println("  -filtersize is the size of the filter");
@@ -143,6 +153,7 @@ public class ImageProcessing {
 			throws IOException {
 		if (filtersize > mat.width() || filtersize > mat.height())
 			throw new RuntimeException("Filter size bigger than picture dimensions");
+		System.out.println("Running box filter method to blur image with filtersize=" + filtersize + "...");
 		Stopwatch timer = new Stopwatch();
 		BoxFilter boxFilter = new BoxFilter(filtersize);
 		
@@ -177,6 +188,7 @@ public class ImageProcessing {
 	
 	public static void processImageWithPrewitt (Mat mat, String out1, String out2)
 			throws IOException {
+		System.out.println("Running Prewitt method to detect edges...");
 		Prewitt prewitt = new Prewitt();
 		
 		// Result
@@ -200,8 +212,8 @@ public class ImageProcessing {
 
 	private static void processImageWithHarris(Mat mat, String out1, String out2, double alpha, double hthr,
 			int filtersize) 
-					throws IOException {
-		System.out.println("Running Harris method to detect corners with alpha=" + alpha +", Hthr=" + hthr + ", filtersize=" + filtersize);
+			throws IOException {
+		System.out.println("Running Harris method to detect corners with alpha=" + alpha +", Hthr=" + hthr + ", filtersize=" + filtersize + "...");
 		Harris harris = new Harris(alpha, hthr, filtersize);
 		
 		// Result
@@ -220,6 +232,27 @@ public class ImageProcessing {
 		}
 		if (out2 != null) {
 			WriteImage.writeImage(result, out2);
+		}
+	}
+
+	private static void processImageWithOtsu(Mat mat, String out1)
+		throws IOException {
+		System.out.println("Running Otsu's method to classify intensity levels...");
+		Otsu otsu = new Otsu();
+		
+		// Result
+		Mat result = otsu.classify(mat);
+		
+		// Magnitude
+		short threshold = otsu.getThreshold();
+		
+		// Show images, print output
+		System.out.println("The threshold is " + threshold);
+		ShowImage.showImage(result, "Intensity levels");
+		
+		// Save images
+		if (out1 != null) {
+			WriteImage.writeImage(result, out1);
 		}
 	}
 	
@@ -264,6 +297,9 @@ public class ImageProcessing {
 				break;
 			case CORNER_DETECTION:
 				ImageProcessing.processImageWithHarris(mat, out1, out2, alpha, hthr, filtersize);
+				break;
+			case THRESHOLDING:
+				ImageProcessing.processImageWithOtsu(mat, out1);
 				break;
 			}
 		} catch (Exception e) {
