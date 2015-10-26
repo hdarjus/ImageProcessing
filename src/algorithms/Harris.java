@@ -69,7 +69,7 @@ public class Harris {
 		for (int i = half; i < mat.height() - half; i++) {
 			for (int j = half; j < mat.width() - half; j++) {
 				double val = mat.get(i, j)[0];
-				Mat sub = mat.submat(i-half, i+half, j-half, j+half);
+				Mat sub = mat.submat(i-half, i+half+1, j-half, j+half+1);
 				MinMaxLocResult max = Core.minMaxLoc(sub);
 				if (val < max.maxVal)
 					result.put(i, j, new double[]{0});

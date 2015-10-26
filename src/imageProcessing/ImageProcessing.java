@@ -282,12 +282,12 @@ public class ImageProcessing {
 		
 		// Shrinker gets binary picture (all elements are 0 or 1)
 		Mat result = mat.clone();
-		result.convertTo(result, CvType.CV_32SC1);
 		Core.compare(result, new Scalar(128), result, Core.CMP_GT);
+		result.convertTo(result, CvType.CV_32SC1);
 		Core.divide(result, new Scalar(255), result);
 		
 		// Swap object and background
-		if (background) {
+		if (!background) {
 			Core.multiply(result, new Scalar(-1), result);
 			Core.add(result, new Scalar(1), result);
 		}
@@ -296,7 +296,7 @@ public class ImageProcessing {
 		result = shrinker.shrink(result);
 		
 		// Swap object and background
-		if (background) {
+		if (!background) {
 			Core.multiply(result, new Scalar(-1), result);
 			Core.add(result, new Scalar(1), result);
 		}

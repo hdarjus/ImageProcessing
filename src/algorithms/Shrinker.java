@@ -1,17 +1,25 @@
 package algorithms;
 
+import java.io.IOException;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+
+import imageProcessing.ShowImage;
+import imageProcessing.WriteImage;
 
 public class Shrinker {
 
 	private Mat trmask;
-	private Mat nzmask;
+	private Mat p2p4p6mask;
+	private Mat p2p4p8mask;
 	
 	public Shrinker () {
 		trmask = Mat.zeros(3, 3, CvType.CV_32SC1);
-		nzmask = Mat.zeros(3, 3, CvType.CV_32SC1);
+		p2p4p6mask = Mat.zeros(3, 3, CvType.CV_32SC1);
+		p2p4p8mask = Mat.zeros(3, 3, CvType.CV_32SC1);
 		
 		trmask.put(0, 1, 1);	// p2
 		trmask.put(0, 0, 2);	// p3
@@ -22,15 +30,18 @@ public class Shrinker {
 		trmask.put(1, 2, 64);	// p8
 		trmask.put(0, 2, 128);	// p9
 		
-		nzmask.put(0, 1, 1);	// p2
-		nzmask.put(1, 0, 1);	// p4
-		nzmask.put(2, 1, 1);	// p6
-		nzmask.put(1, 2, 1);	// p8
+		p2p4p6mask.put(0, 1, 1);	// p2
+		p2p4p6mask.put(1, 0, 1);	// p4
+		p2p4p6mask.put(2, 1, 1);	// p6
+		
+		p2p4p8mask.put(0, 1, 1);	// p2
+		p2p4p8mask.put(1, 0, 1);	// p4
+		p2p4p8mask.put(1, 2, 1);	// p8
 	}
 	
 	public Mat shrink (Mat mat) {
 		Mat u1 = mat.clone();
-		Mat u2 = mat.clone();
+		Mat u2 = u1.clone();
 		boolean changed = true;
 		while (changed) {
 			changed = false;
@@ -43,16 +54,14 @@ public class Shrinker {
 				}
 			}
 			
-			Mat temp = u1;
-			u1 = u2;
-			u2 = temp;
+			u1 = u2.clone();
 		}
 		
 		return u1;
 	}
 	
 	private int tr (Mat mat, int i, int j) {	// point (i,j) should not be on the edge
-		Mat neigh = mat.submat(i-1, i+1, j-1, j+1);
+		Mat neigh = mat.submat(i-1, i+2, j-1, j+2);
 		Mat maskedneigh = new Mat();
 		Core.multiply(neigh, trmask, maskedneigh);
 		int sum = (int) Core.sumElems(maskedneigh).val[0];
@@ -67,23 +76,28 @@ public class Shrinker {
 	}
 	
 	private int nz (Mat mat, int i, int j) {	// point (i,j) should not be on the edge
-		Mat neigh = mat.submat(i-1, i+1, j-1, j+1);
-		Mat maskedneigh = new Mat();
-		Core.multiply(neigh, nzmask, maskedneigh);
-		return (int) Core.sumElems(maskedneigh).val[0];
+		Mat neigh = mat.submat(i-1, i+2, j-1, j+2);
+		return (int) (Core.sumElems(neigh).val[0] - mat.get(i, j)[0]);
 	}
 	
 	private boolean p2p4p8 (Mat mat, int i, int j) {	// returns false iff p2, p4 and p8 are all 1
-		return nz(mat, i, j) < 3 + mat.get(2, 1)[0];
+		Mat neigh = mat.submat(i-1, i+2, j-1, j+2);
+		Mat result = new Mat();
+		Core.multiply(neigh, p2p4p8mask, result);
+		return Core.sumElems(result).val[0] < 3;
 	}
 	
 	private boolean p2p4p6 (Mat mat, int i, int j) {	// returns false iff p2, p4 and p6 are all 1
-		return nz(mat, i, j) < 3 + mat.get(1, 2)[0];
+		Mat neigh = mat.submat(i-1, i+2, j-1, j+2);
+		Mat result = new Mat();
+		Core.multiply(neigh, p2p4p6mask, result);
+		return Core.sumElems(result).val[0] < 3;
 	}
 	
 	private boolean deletePoint (Mat mat, int i, int j) {
 		int nzhelp = nz(mat, i, j);
-		return (nzhelp >= 2) && (nzhelp <= 6)
+		return (mat.get(i, j)[0] == 1)
+				&& (nzhelp >= 2) && (nzhelp <= 6)
 				&& (tr(mat, i, j) == 1)
 				&& (p2p4p8(mat, i, j) || tr(mat, i-1, j) != 1)
 				&& (p2p4p6(mat, i, j) || tr(mat, i, j-1) != 1);
